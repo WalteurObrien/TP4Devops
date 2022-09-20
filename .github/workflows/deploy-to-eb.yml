@@ -1,0 +1,36 @@
+nom : deploy-to-eb 
+
+on : 
+  push : 
+    branches : [ master ] 
+
+jobs : 
+  deploy : 
+    runs-on : ubuntu-latest 
+
+    steps : 
+      - uses : actions/checkout@v2 
+
+      - name : Créer un package de déploiement ZIP 
+        run : zip -r deploy_package .zip ./ 
+
+      - nom : Configure AWS Credentials 
+        utilise : aws-actions/configure-aws-credentials@v1 
+        avec : 
+          aws-access-key-id : ${{ secrets.ACCESS_KEY_ID }} 
+          aws-secret-access-key : $ {{ secrets.SECRET_ACCESS_KEY }} 
+          aws-region : "us-east-1" 
+
+      - nom : Charger le package dans le compartiment S3
+        : aws s3 cp deploy_package.zip s3://my-awesome-app-deploy-andrey/
+
+      - name : Créer une nouvelle version de l'application ElasticBeanstalk 
+        exécuter : | 
+          aws elasticbeanstalk create-application-version \ 
+          --application-name MyAwesomeApp \ 
+          --source-bundle S3Bucket="my-awesome-app-deploy-andrey",S3Key="deploy_package.zip" \ 
+          --version-label "ver- ${{ github.sha }}" \ 
+          --description "commit-sha-${{ github.sha }}" 
+
+      - name : Déployer la nouvelle version de l'application ElasticBeanstalk 
+        exécuter : aws elasticbeanstalk update-environment --environment-name Myawesomeapp-env -1 --version-label "ver-${{ github.sha }}"
